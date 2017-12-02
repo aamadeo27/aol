@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="1.0" xmlns="http://java.sun.com/xml/ns/persistence">
+    <persistence-unit name="tesis" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.ejb.HibernatePersistence</provider>
+        <class>me.aamadeo.aol.on.Node</class>
+        <class>me.aamadeo.aol.on.Link</class>
+        <class>me.aamadeo.aol.on.LightLink</class>
+        <class>me.aamadeo.aol.on.Network</class>
+        <class>me.aamadeo.aol.on.Request</class>
+        <class>me.aamadeo.aol.optimization.Scenario</class>
+        <class>me.aamadeo.aol.on.Hop</class>
+        <class>me.aamadeo.aol.on.Path</class>
+        <class>me.aamadeo.aol.on.Request</class>
+        <class>me.aamadeo.aol.optimization.Solution</class>
+        <properties>
+            <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
+            <property name="hibernate.connection.provider_class" value="org.hibernate.connection.DriverManagerConnectionProvider" />
+            <property name="hibernate.connection.driver_class" value="org.postgresql.Driver"/>            
+            <property name="hibernate.hbm2ddl.auto" value="update"/>
+            <property name="hibernate.ejb.naming_strategy" value="org.hibernate.cfg.ImprovedNamingStrategy"/>
+            <property name="hibernate.connection.charSet" value="UTF-8"/>
+            <property name="hibernate.connection.url" value="jdbc:postgresql://localhost:5432/aol"/>
+            <property name="hibernate.connection.password" value="aol"/>
+            <property name="hibernate.connection.username" value="aol"/>
+        </properties>
+    </persistence-unit>
+</persistence>
