@@ -20,10 +20,8 @@ import me.aamadeo.aol.on.*;
 
 @Entity
 public class Solution implements Individual, Comparable<Individual> {
-	//public static final String BASEDIR="C:/Users/amadeoa/Tesis/graph";
-	public static final String BASEDIR="C:/Users/albert/Tesis/graph";
-	
-	//public static String BUFFER_DEBUG = "";
+	public static final String BASEDIR="C:/Users/albert/aol/graph";
+
 	private static int solucionSeq = 1;
 		
 	@Id
@@ -35,7 +33,7 @@ public class Solution implements Individual, Comparable<Individual> {
 	
 	private String nombre;
 	
-	private double costo = Double.MIN_VALUE;
+	private double cost = Double.MIN_VALUE;
 	
 	@Transient
 	private Map<Request,Service> serviciosPorRequest = new HashMap<Request,Service>();
@@ -70,35 +68,33 @@ public class Solution implements Individual, Comparable<Individual> {
 			hijo.addServicio(Request,servHijo);
 		}
 		 
-		hijo.calcular();
+		hijo.calculateCost();
 		
 		return hijo;
 	}
 		
-	private void calcular(){
+	private void calculateCost(){
 		double cost = 0.0;
 		
-		HashSet<Node> NodesUtilizados = new HashSet<Node>();
+		HashSet<Node> usedNodes = new HashSet<Node>();
 		HashSet<Link> linksUsed = new HashSet<Link>();
 
 		requestNotServed = 0;
 		
 		for(Service service : services){
-			Node anterior = service.getRequest().getOrigin();
-			Node actual = anterior;
-			NodesUtilizados.add(anterior);
-			
+			Node current = service.getRequest().getOrigin();
+			usedNodes.add(current);
+
 			if (service.getPath() == null){
 				requestNotServed++;
 				continue;
 			}
 			
 			for(Hop s: service.getPath().getHops()){
-				anterior = actual;
-				actual = s.getDestination();
+				current = s.getDestination();
 				
-				if ( ! NodesUtilizados.contains(actual) ){
-					NodesUtilizados.add(actual);
+				if ( ! usedNodes.contains(current) ){
+					usedNodes.add(current);
 				}
 				
 				if ( ! linksUsed.contains(s.getLink()) ){
@@ -109,16 +105,11 @@ public class Solution implements Individual, Comparable<Individual> {
 			}
 		}
 		
-		for (Node Node: NodesUtilizados){
+		for (Node Node: usedNodes){
 			cost += Node.getCost();
 		}
-				
-		/*
-		 * El fitness se representa como una constante positiva (1000) menos
-		 * el costo y menos la penalizacion.
-		 */
-		
-		costo = cost;		
+
+		this.cost = cost;
 	}
 
 	public void mutate() {
@@ -126,7 +117,7 @@ public class Solution implements Individual, Comparable<Individual> {
 			if ( Math.random() < 0.21) s.mutate();
 		}
 		
-		calcular();
+		calculateCost();
 	}
 
 	public void random() {
@@ -136,19 +127,13 @@ public class Solution implements Individual, Comparable<Individual> {
 		
 		for(Request Request: scenario.getRequests()){
 			Service service = new Service(Request);
-		
-			initExceptionManagement();
-			try { service.random(); }
-			catch(Exception e){
-				manageException(e);
-			}
+
+			service.random();
 						
 			addServicio(Request, service);
-			
-			//if ( DEBUG ) scenario.getNetwork().usage(BASEDIR,"");
 		}
 		
-		calcular();
+		calculateCost();
 	}
 
 	public long getId() {
@@ -212,7 +197,7 @@ public class Solution implements Individual, Comparable<Individual> {
 	@Override
 	public String toString() {
 		
-		return nombre+":"+costo+":"+requestNotServed;
+		return nombre+":"+ cost +":"+requestNotServed;
 	}
 
 	public void setNombre(String nombre) {
@@ -229,11 +214,16 @@ public class Solution implements Individual, Comparable<Individual> {
 
 	public int compareTo(Individual i) {
 		Solution b = (Solution) i;
-		
-		if (b.requestNotServed != 0 || this.requestNotServed != 0)
-			return b.requestNotServed - this.requestNotServed;
-		
-		return (int) (10000*(b.costo - this.costo));
+
+		/*
+		 * If either SolutionA or SolutionB doesn't serves every Request of the scenario
+		 * the solution that serves more request it's the fittest
+		 */
+		if (b.requestNotServed != 0 || this.requestNotServed != 0){
+			return this.requestNotServed - b.requestNotServed;
+		}
+
+		return (int) (10000*(b.cost - this.cost));
 	}
 	
 	@Override
@@ -262,55 +252,16 @@ public class Solution implements Individual, Comparable<Individual> {
 		
 		return clone;
 	}
-	
-	private void initExceptionManagement(){
-		//Service.BUFFER_DEBUG = "";
-//		Hop.BUFFER_DEBUG = "";
-		//Node.BUFFER_DEBUG = "";
-		//Path.BUFFER_DEBUG = "";
-		//Link.BUFFER_DEBUG = "";
-	}
-	
-//*	
-	private void manageException(Exception e){
-		System.err.println("En el hilo : " + Thread.currentThread().getName());
-//		System.err.println("--BUFFER SERVICIO--");
-//		System.err.println(Service.BUFFER_DEBUG);
-
-//		if ( Node.BUFFER_DEBUG.length() > 0){
-//			System.err.println("--BUFFER CAMINO--");
-//			System.err.println(Path.BUFFER_DEBUG);
-//		}
-		
-//		if ( Hop.BUFFER_DEBUG.length() > 0){
-//			System.err.println("--BUFFER SALTO--");
-//			System.err.println(Hop.BUFFER_DEBUG);
-//		}
-		
-//		if ( Node.BUFFER_DEBUG.length() > 0){
-//			System.err.println("--BUFFER Node--");
-//			System.err.println(Node.BUFFER_DEBUG);
-//		}
-		
-//		if ( Link.BUFFER_DEBUG.length() > 0){
-//			System.err.println("--BUFFER CANAL OPTICO--");
-//			System.err.println(Link.BUFFER_DEBUG);
-//		}
-		
-		e.printStackTrace();
-		System.exit(1);
-	}
-	//*/
 		
 	public double getFitness() {
-		return -costo;
+		return -cost;
 	}
 
-	public void setCosto(double costo) {
-		this.costo = costo;
+	public void setCost(double cost) {
+		this.cost = cost;
 	}
 	
-	public double getCosto(){
-		return this.costo;
+	public double getCost(){
+		return this.cost;
 	}
 }

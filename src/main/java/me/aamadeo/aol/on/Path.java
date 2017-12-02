@@ -4,22 +4,11 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.OneToMany;
-import javax.persistence.ManyToOne;
-import javax.persistence.CascadeType;
-import javax.persistence.Id;
-import javax.persistence.OrderBy;
+import javax.persistence.*;
 
 
-/**
- * Clase Path, representa un camino por su nodo origin, y una lista de
- * lightLinks que debe seguir
- * @author albert
- *
- */
 @Entity
+@Table(name="Path")
 public class Path {
 	
 	//public static String BUFFER_DEBUG = "";
@@ -41,35 +30,23 @@ public class Path {
 	private int distance = 0;
 	
 	public Path(){ }
-	
-	/**
-	 * Constructor principal
-	 * @param origin
-	 */
+
 	public Path(Node origin){
 		this.origin = origin;
 		this.destination = origin;
 		this.hops.clear();
 		this.distance = 0;
 	}
-	
-	/**
-	 * Constructor apartir de un camin existente
-	 * @param c	Path existente
-	 */
-	public Path(Path c) {
-		this.origin = c.origin;
+
+	public Path(Path p) {
+		this.origin = p.origin;
 		
 		this.hops = new TreeSet<Hop>();
-		this.hops.addAll(c.hops);
-		this.destination = c.destination;
-		this.distance = c.distance;
+		this.hops.addAll(p.hops);
+		this.destination = p.destination;
+		this.distance = p.distance;
 	}
-	
-	/**
-	 * Metodo para agregar un hop al camino
-	 * @param hop
-	 */
+
 	public void addHop(Hop hop){
 		hops.add(hop);
 		
@@ -78,19 +55,11 @@ public class Path {
 		destination = hop.getDestination();
 		distance += hop.getLink().getCost();
 	}
-	
-	/**
-	 * Utilizado para obtener el destination del camino
-	 * @return El ultimo nodo visitado en el camino
-	 */
+
 	public Node getDestination(){
 		return this.destination;
 	}
-	
-	/**
-	 * Utilizado para obtener la longitud del camino en hops
-	 * @return La cantidad de hops, es decir el tama�o de la lista hops
-	 */
+
 	public int getDistance(){
 		return this.distance;
 	}
@@ -114,23 +83,31 @@ public class Path {
 	public void setDestino(Node destination) {
 		this.destination = destination;
 	}
-	
+
+	/**
+	 * It evaluates the need to change the network allowing more resources
+	 * per link, and adapt the network on this path according to the
+	 * IncreaseDimension given by the Configuration of the Scenario.
+	 *
+	 * @param bandwidth
+	 * @param network
+	 */
 	public void addResources(int bandwidth, Network network){
 		for(Hop s: hops){
-			Link c = s.getLink();
+			Link link = s.getLink();
 			
-			if ( ! c.itsCapable(bandwidth) ){
+			if ( ! link.itsCapable(bandwidth) ){
 				switch(Configuration.getIncreaseDimension()){
 				case Configuration.FIBER_INCREASE : 
-					c.addExtraFiber(network);
+					link.addExtraFiber(network);
 
 					break;
 				case Configuration.BAND_INCREASE :
-					c.addExtraBand(network);
+					link.addExtraBand(network);
 
 					break;
 				case Configuration.WAVELENGTH_INCREASE :
-					c.addExtraWavelength(network);
+					link.addExtraWavelength(network);
 
 					break;
 				}
@@ -196,13 +173,16 @@ public class Path {
 		this.destination = c.destination;
 	}
 
+	/**
+	 * Assign the resources of this path to the service that it belongs to.
+	 * @param network
+	 */
 	public void commitLinks(Network network){
 		for(Hop hop : hops){
 			Link link = hop.getLink();
 			Set<LightLink> lightLinks = new HashSet<LightLink>();
 			
 			for (LightLink e : hop.getLightLinks()) {
-
 				if( ! link.contains(e) ){
 					int extraResourcesNeeded = (e.getFiber()+1) - ( network.getF() + link.getExtraFibers() );
 					for ( int i = 0; i < extraResourcesNeeded; i++ ) link.addExtraFiber(network);
@@ -222,7 +202,7 @@ public class Path {
 			}
 			
 			hop.setLightLinks(lightLinks);
-		}	
+		}
 	}
 		
 	public void comitLightLinks(int bandwidth, long serviceID){

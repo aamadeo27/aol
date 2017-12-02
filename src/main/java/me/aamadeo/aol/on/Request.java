@@ -31,9 +31,11 @@ public class Request implements Comparable<Request>{
 	public Request(){}
 	
 	/**
-	 * Constructor principal
+	 * The Request has an scenario id that identifies the scenario it belongs to,
+	 * the origin and the destination nodes that require connectivity, and the bandwidth
+	 * that it needs.
 	 *
-	 * @param scenario	Bandwidth scenario
+	 * @param scenario	    Bandwidth scenario
 	 * @param origin		Node Origin
 	 * @param destination	Node Destino
 	 * @param badnwidth		Ancho de banda solicitado.
@@ -84,19 +86,11 @@ public class Request implements Comparable<Request>{
 	public Network getNetwork(){
 		return scenario.getNetwork();
 	}
-	
-	/**
-	 * Getter del nodo Origin
-	 * @return	Node origin
-	 */
+
 	public Node getOrigin() {
 		return origin;
 	}
 
-	/**
-	 * Getter del nodo Destino
-	 * @return	Node destination
-	 */
 	public Node getDestino() {
 		return destination;
 	}

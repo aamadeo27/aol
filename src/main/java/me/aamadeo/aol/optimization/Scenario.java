@@ -91,8 +91,12 @@ public class Scenario {
 		this.network = network;
 		Requests = new TreeSet<Request>();
 	}
-	
-	public void allVsAll( int bandwidth ){
+
+	/**
+	 * Create a request for every {origin,destination} pair
+	 * @param bandwidth
+	 */
+	public void createRequests(int bandwidth ){
 		for(Node origin: network.getNodes()){
 			for(Node destination: network.getNodes()){
 				if ( origin.equals(destination)) continue;

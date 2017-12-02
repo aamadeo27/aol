@@ -7,7 +7,14 @@ public class Configuration {
 	public static final int WAVELENGTH_INCREASE = 2;
 	
 	private static boolean [] flexibility = {false, false, false};
-	
+
+	/**
+	 * Gives the network the ability to change in the form of more fibers, more wavebands,
+	 * more wavelengths or more timeslots (increaseDimension) as required.
+	 *
+	 * @param increaseDimension
+	 * @param isFlexible
+	 */
 	public static void setflexibility(int increaseDimension, boolean isFlexible) {
 		flexibility[increaseDimension] = isFlexible;
 	}

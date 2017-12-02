@@ -15,22 +15,21 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
 
+/**
+ * Command line for executing the optimization of every scenario, bandwith requirement (load level) and capacity
+ * on the NSF network.
+ * Each scenario (args[0])it's based on an integer [0-8] whose binary interpretation gives: the strategy,
+ * the flexibility of a network, if it can add more fibers, more wavebands, more wavelengths or timeslots.
+ *
+ * The resulting image will be saved in the root directory specified by args[1]
+ *
+ */
 public class Benchmark {
 	private static Runtime runtime = Runtime.getRuntime();
 	private static EntityManagerFactory emf = Persistence.createEntityManagerFactory("tesis");
 	private static EntityManager em = emf.createEntityManager();
-	
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
 
-		/*
-		 * Para cada configuracion
-		 * 	Para cada carga de la Network
-		 * 		Correr 100000 veces
-		 */
-		
+	public static void main(String[] args) {
 		String root = args[1];
 		
 		long inicio = System.currentTimeMillis();		
@@ -56,14 +55,13 @@ public class Benchmark {
 		File strategyDir = new File(root + "/s"+strategy);
 		
 		if ( ! strategyDir.exists() ) strategyDir.mkdir();
-		
-		
-		for ( int loadLevel = 1; loadLevel <= 3; loadLevel++) {
-			for ( int granularity = 1; granularity <= 3 ; granularity++){
+
+		for ( int capacity = 1; capacity <= 3; capacity++) {
+			for ( int loadLevel = 1; loadLevel <= 3 ; loadLevel++){
 
 				long actual = System.currentTimeMillis();
 				Set<Individual> population = new HashSet<Individual>();
-				String scenarioName = "NSF_G"+granularity+"C"+loadLevel;
+				String scenarioName = "NSF_G"+loadLevel+"C"+capacity;
 				
 				File scenarioDir = new File(strategyDir.getAbsolutePath() + "/" + scenarioName);
 				if ( ! scenarioDir.exists()) scenarioDir.mkdir();
@@ -72,7 +70,7 @@ public class Benchmark {
 				TypedQuery<Scenario> tQuery = em.createQuery(sQuery, Scenario.class);
 				tQuery.setParameter("name",scenarioName);
 				Scenario aScenario = tQuery.getSingleResult();
-				System.out.println("\n[" + (actual-inicio)/1000 +"] Estrategia: " + strategy + " aScenario: " + aScenario.getName()  );
+				System.out.println("\n[" + (actual-inicio)/1000 +"] Strategy: " + strategy + " Scenario: " + aScenario.getName()  );
 	
 				GeneticAlgorithm engine = new GeneticAlgorithm();
 				String run = "" + System.currentTimeMillis();
@@ -90,16 +88,14 @@ public class Benchmark {
 				selector.setMaxIndividuals(100);
 				population = new TreeSet<Individual>(engine.optimize(1000, population, selector));
 				Solution fittest = (Solution) population.iterator().next();
-				
-				/*
+
 				em.getTransaction().begin();
 				em.persist(fittest);
 				em.getTransaction().commit();
-				*/
 				
 				fittest.save(scenarioDir.getAbsolutePath());
 
-				System.out.println("Fin del aScenario : " + scenarioName);
+				System.out.println("End of Scenario : " + scenarioName);
 			}
 		}
 	}

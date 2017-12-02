@@ -27,44 +27,21 @@ public class Service implements Comparable<Service>{
 	
 	@OneToOne(cascade=CascadeType.ALL)
 	private Path path;
-		
-	private double failProbability = 1.0;
 	
 	@Transient
 	private boolean available = false;
 	
 	public Service(){}
-	
-	/**
-	 * Constructor principal
-	 * @param request	Request a la que se desea proveerle un servicio
-	 */
+
 	public Service(Request request) {
 		super();
 		this.request = request;
 	}
 
-	/**
-	 * Getter de la request
-	 * @return	Request
-	 */
 	public Request getRequest() {
 		return request;
 	}
 
-	/**
-	 * Obtiene la probabilidad de falla del servicio
-	 * @return	Probabilidad de Falla
-	 */
-	public double getFailProbability() {
-		return ((int)(failProbability *10000.0))/100.0;
-	}
-
-
-	/**
-	 * Funcion de Simulacion, retorna true si el servicio esta available
-	 * @return	Disponibildad del servicio
-	 */
 	public boolean isAvailable() {
 		return available;
 	}
@@ -96,11 +73,16 @@ public class Service implements Comparable<Service>{
 	public void setPath(Path path) {
 		this.path = path;
 	}
-	
+
+	/**
+	 * Commits the resources of the network to the path
+	 */
 	public void commitPath(){
 		if (path == null) return;
-		
+
+		//Add resources if needed
 		path.addResources(request.getBadnwidth(), request.getNetwork());
+
 		path.comitLightLinks(request.getBadnwidth(), id * request.getNetwork().getBandWidth());
 	}
 	
@@ -350,12 +332,6 @@ public class Service implements Comparable<Service>{
 			mutate();
 		}
 	}
-	
-	public void getFailProbability(double failProbabilityPerLink){
-		if(path == null)  return;
-		
-		failProbability = failProbabilityPerLink * path.getHops().size();
-	}
 		
 	@Override
 	public String toString() {
@@ -378,6 +354,10 @@ public class Service implements Comparable<Service>{
 		return request.hashCode();
 	}
 
+	/**
+	 * Creates an image of a network with its allocated resources.
+	 * @param dir
+	 */
 	public void save(String dir){
 		try{
 			PrintWriter pw = new PrintWriter( new FileWriter(dir + "/s"+ request) );

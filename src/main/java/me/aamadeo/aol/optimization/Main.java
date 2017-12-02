@@ -22,19 +22,25 @@ import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
 
 /**
- * Clase de prueba de persistencia.
+ * Command Line to generate the networks, the scenarios for each network
+ * and run the optimization on a specific scenario 100 generations.
+ *
  * @author albert
  *
  */
 public class Main {
 	private static EntityManagerFactory emf = Persistence.createEntityManagerFactory("main");
 	private static EntityManager em = emf.createEntityManager();
-	
+
+	/**
+	 * @param args arg[0] = "genNetworks" | "genScenarios" | "optimize"
+	 *             arg[1] = {ScenarioName} for the "optimize" option
+	 */
 	public static void main(String args []){
 		if(args.length > 0){
 			if(args[0].equalsIgnoreCase("genNetworks")) genNetworks();
 
-			if(args[0].equalsIgnoreCase("genCases")){
+			if(args[0].equalsIgnoreCase("genScenarios")){
 				TypedQuery<Network> q = em.createQuery("From Network", Network.class);
 				Calendar date = Calendar.getInstance();
 				String id = "" + date.get(Calendar.DAY_OF_MONTH) + (1+date.get(Calendar.MONTH)) + date.get(Calendar.YEAR);
@@ -86,7 +92,7 @@ public class Main {
 		String runID = "" + System.currentTimeMillis();
 		runID = SHAsum(runID.getBytes()).substring(0,5);
 		
-		System.out.println("Se crea la poblacion inicial");
+		System.out.println("First Generation");
 		for(int i = 0; i < 100; i++){
 			Solution Individual = new Solution();
 			Individual.setScenario(aScenario);
@@ -94,7 +100,7 @@ public class Main {
 			population.add(Individual);
 		} 
 		
-		System.out.println("El Top5 Inicial");
+		System.out.println("Initial Top5");
 		int j = 1;
 		for(Individual i : population){
 			Solution s = (Solution) i;
@@ -111,9 +117,8 @@ public class Main {
 		
 		System.out.println("-----\n==========================\n-----");
 		
-		System.out.println("El Top5("+population.size()+") Final");
+		System.out.println("Final Top5("+population.size()+")");
 		j = 1;
-		
 		
 		for(Individual i : population){
 			Solution s = (Solution) i;
@@ -138,7 +143,6 @@ public class Main {
 		};
 		persistNet(14,nsf_links, "NSF");
 		
-		/*chinaNet
 		int [] [] chinaNet_enlaces = {
 
 		{1,2,1},{2,3,1},{2,8,1},{3,4,1},{4,5,1},{5,6,1},{5,7,1},{7,8,1},{8,9,1},{8,12,1},{8,13,1},
@@ -155,8 +159,7 @@ public class Main {
 
 		};
 		persistNet(68,chinaNet_enlaces, "chinaNet");
-		
-		/*eufrance
+
 		int [] [] eufrance_enlaces = {
 
 		{1,2,1},{1,4,1},{2,5,1},{3,4,1},{3,9,1},{4,5,1},{4,7,1},{5,6,1},{5,7,1},{6,7,1},{6,16,1},
@@ -169,8 +172,7 @@ public class Main {
 		
 		};
 		persistNet(43,eufrance_enlaces, "eufrance");
-		
-		/*eugerman
+
 		int [] [] eugerman_enlaces = {
 
 		{1,4,1},{1,6,1},{2,4,1},{2,3,1},{3,5,1},{4,5,1},{5,9,1},{6,8,1},{6,7,1},{7,8,1},{7,13,1},
@@ -178,39 +180,63 @@ public class Main {
 		{14,17,1},{15,16,1},{16,17,1},
 		};
 		persistNet(17,eugerman_enlaces, "eugerman");
-		*/
 	}
 	
 	public static void genScenario(Network Network, String nombre){
 		em.getTransaction().begin();
 		
-		int lightlinks = (int) Math.ceil(500.0 / Network.getBandWidth());
+		//Scenario C1 low requirements
+		int bandwidthRequired = (int) Math.ceil(500.0 / Network.getBandWidth());
 		Scenario aScenario = new Scenario(Network);
-		aScenario.allVsAll(lightlinks);
+		aScenario.createRequests(bandwidthRequired);
 		aScenario.setName(nombre + "C1");
 		em.persist(aScenario);
 		
-		lightlinks = (int) Math.ceil(1000.0 / Network.getBandWidth());
+		//Scenario C2 medium requirements
+		bandwidthRequired = (int) Math.ceil(1000.0 / Network.getBandWidth());
 		aScenario = new Scenario(Network);
-		aScenario.allVsAll(lightlinks);
+		aScenario.createRequests(bandwidthRequired);
 		aScenario.setName(nombre + "C2");
 		em.persist(aScenario);
 		
-		lightlinks = (int) Math.ceil(5000.0 / Network.getBandWidth());
+		//Scenario C3 High requirements
+		bandwidthRequired = (int) Math.ceil(5000.0 / Network.getBandWidth());
 		aScenario = new Scenario(Network);
-		aScenario.allVsAll(lightlinks);
+		aScenario.createRequests(bandwidthRequired);
 		aScenario.setName(nombre + "C3");
 		em.persist(aScenario);
 		
 		em.getTransaction().commit();
 	}
-	
+
+	/**
+	 * Persists 3 instances of the same network but with different bandwidths.
+	 *
+	 * @param nodes
+	 * @param links
+	 * @param name
+	 */
 	public static void persistNet(int nodes, int [] [] links, String name){
-		persistNet(nodes,links,name+"_G1",1,3,10,10);
+		//Low bandwidth 1*3*3*3 = 27 lightlinks per link
+		persistNet(nodes,links,name+"_G1",1,3,3,3);
+
+		//Medium bandwidth 1*3*5*5 = 75 lightlinks per link
 		persistNet(nodes,links,name+"_G2",1,3,5,5);
-		persistNet(nodes,links,name+"_G3",1,3,3,3);
+
+		//High bandwidth 1*3*10*10 = 300 lightlinks per link
+		persistNet(nodes,links,name+"_G3",1,3,10,10);
 	}
-	
+
+	/**
+	 * Persists a network, given the specification of a link
+	 * @param nodes
+	 * @param links
+	 * @param name
+	 * @param F
+	 * @param B
+	 * @param W
+	 * @param T
+	 */
 	public static void persistNet(int nodes, int [] [] links, String name, int F, int B, int W, int T){
 		
 		HashMap<String,Node> nodoMap = new HashMap<String,Node>();
@@ -228,10 +254,7 @@ public class Main {
 			nodoMap.put(""+i, nodo);
 			net.addNode(nodo);
 		}
-		em.persist(net);
-		em.getTransaction().commit();
-		
-		em.getTransaction().begin();
+
 		for(int i = 0; i < links.length; i++){
 			Node a = nodoMap.get(""+links[i][0]);
 			Node b = nodoMap.get(""+links[i][1]);
