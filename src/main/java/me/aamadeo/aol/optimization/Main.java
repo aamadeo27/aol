@@ -6,7 +6,12 @@ import me.aamadeo.aol.ag.Individual;
 import me.aamadeo.aol.on.Link;
 import me.aamadeo.aol.on.Network;
 import me.aamadeo.aol.on.Node;
+import org.slf4j.Logger;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.TypedQuery;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Calendar;
@@ -16,11 +21,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.TypedQuery;
-
 /**
  * Command Line to generate the networks, the scenarios for each network
  * and run the optimization on a specific scenario 100 generations.
@@ -29,37 +29,46 @@ import javax.persistence.TypedQuery;
  *
  */
 public class Main {
-	private static EntityManagerFactory emf = Persistence.createEntityManagerFactory("main");
-	private static EntityManager em = emf.createEntityManager();
+	private static EntityManagerFactory emf = null;
+	private static EntityManager em = null;
 
 	/**
 	 * @param args arg[0] = "genNetworks" | "genScenarios" | "optimize"
 	 *             arg[1] = {ScenarioName} for the "optimize" option
 	 */
-	public static void main(String args []){
-		if(args.length > 0){
-			if(args[0].equalsIgnoreCase("genNetworks")) genNetworks();
 
-			if(args[0].equalsIgnoreCase("genScenarios")){
-				TypedQuery<Network> q = em.createQuery("From Network", Network.class);
-				Calendar date = Calendar.getInstance();
-				String id = "" + date.get(Calendar.DAY_OF_MONTH) + (1+date.get(Calendar.MONTH)) + date.get(Calendar.YEAR);
-				
-				for(Network Network: q.getResultList()){
-					System.out.println("Generando cases de "+Network.getName());
-					genScenario(Network,Network.getName());
+	public static void main(String args []){
+
+		emf = Persistence.createEntityManagerFactory("aol");
+		em = emf.createEntityManager();
+
+		try {
+			if(args.length > 0){
+				if(args[0].equalsIgnoreCase("genNetworks")) genNetworks();
+
+				if(args[0].equalsIgnoreCase("genScenarios")){
+					TypedQuery<Network> q = em.createQuery("From Network", Network.class);
+					Calendar date = Calendar.getInstance();
+					String id = "" + date.get(Calendar.DAY_OF_MONTH) + (1+date.get(Calendar.MONTH)) + date.get(Calendar.YEAR);
+
+					for(Network Network: q.getResultList()){
+						System.out.println("Generating scenarios of "+Network.getName());
+						genScenario(Network,Network.getName());
+					}
+				}
+
+				if(args[0].equalsIgnoreCase("optimize")){
+					String sQuery = "From scenario where name = :name";
+					TypedQuery<Scenario> tQuery = em.createQuery(sQuery, Scenario.class);
+					tQuery.setParameter("name", args[1]);
+
+					Scenario scenario = tQuery.getSingleResult();
+
+					optimize(scenario);
 				}
 			}
-
-			if(args[0].equalsIgnoreCase("optimize")){
-				String sQuery = "From senario where name = :name";
-				TypedQuery<Scenario> tQuery = em.createQuery(sQuery, Scenario.class);
-				tQuery.setParameter("name", args[1]);
-				
-				Scenario scenario = tQuery.getSingleResult();
-				
-				optimize(scenario);
-			}
+		} finally {
+			if ( emf.isOpen() ) emf.close();
 		}
 	}
 	

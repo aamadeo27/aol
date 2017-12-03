@@ -7,18 +7,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.Transient;
+import javax.persistence.*;
 
 import me.aamadeo.aol.ag.Individual;
 import me.aamadeo.aol.on.*;
 
 @Entity
+@Table(name="Solution")
 public class Solution implements Individual, Comparable<Individual> {
 	public static final String BASEDIR="C:/Users/albert/aol/graph";
 
