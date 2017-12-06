@@ -116,17 +116,15 @@ public class Service implements Comparable<Service>{
 		if ( originalPath == null ) return null;
 				
 		/* 
-		 * Se busca un subcamino de distancia entre 1 y el 40% de longitud del camino original (4 saltos en promedio).
-		 * El subcamino tendra una distancia aleatoria (subcaminoDistancia).
-		 * Y el nodo origin tambien sera aleatorio.
-		 * 
-		 * El camino nuevo tiene tres partes :
-		 * Parte A : Origin - Medio1
-		 * Parte B : Medio1 - Medio2 (Subcamino nuevo donde no se utilizan los nodos intermedios del camino original) 
-		 * Parte C : Medio2 - Fin
-		 * 
-		 * El nuevo subcamino nuevo se hallar� bloqueando los nodos originales del sub camino, y buscando
-		 * otro camino optimo. Luego se desbloquearan los nodos originales del sub camino.
+		 * The method selects a random segment of the path of a random distance between [2;5] hops and mutates that
+		 * segment.
+		 *
+		 * So the original is divided in 3 sections, SectionA, SectionB (to be mutated) and SectionC.
+		 *
+		 * Origin - PointM1 -  PointM2 - Destination
+		 * |  SectionA | Section B |    Section C  |
+		 * The mutated segment (new SectionB) is found by locking the nodes on the original (old SectionB),
+		 * thus looking for an alternative point between PointM1 and PointM2
 		 */
 		double hopCount = originalPath.getHops().size();
 		int subPathDistance = Math.max(2,(int)(Math.random()*5));
@@ -136,10 +134,7 @@ public class Service implements Comparable<Service>{
 		int nodeIndex = (int) (Math.random()*(hopCount-subPathDistance));
 		
 		Iterator<Hop> hopIterator = originalPath.getHops().iterator();
-		
-		/*
-		 * Se crea primeramente la parte A del camino nuevo
-		 */
+
 		Path mutantPath = new Path(originalPath.getOrigin());
 		Node current = originalPath.getOrigin();
 		current.lock();
@@ -152,50 +147,41 @@ public class Service implements Comparable<Service>{
 			nodeIndex--;
 		}
 		
-		Node middleA = current;
-		Path oldSegmentB = new Path(middleA);
-				
-		/*
-		 * Se bloquean los canales intermedios entre Medio1 y Medio2
-		 */
+		Node pointM1 = current;
+		Path oldSectionB = new Path(pointM1);
+
 		int secuencia = 1;
 		while(subPathDistance > 0){
 			Link link = hopIterator.next().getLink();
-			oldSegmentB.addHop(new Hop(secuencia++, link));
+			oldSectionB.addHop(new Hop(secuencia++, link));
 			
 			subPathDistance--;
 			link.lock();
 			current = link.getDestination();
 		}
-		Node middleB = current;
-		middleB.unlock();
+		Node pointM2 = current;
+		pointM2.unlock();
 				
-		Path segmentC = new Path(current);
+		Path sectionC = new Path(current);
 		secuencia = 1;
 		while(hopIterator.hasNext()){
 			Link canal = hopIterator.next().getLink();
-			segmentC.addHop(new Hop(secuencia++, canal));
+			sectionC.addHop(new Hop(secuencia++, canal));
 			current = canal.getDestination();
 			current.lock();
 			
 		}
-		segmentC.getOrigin().unlock();
+		sectionC.getOrigin().unlock();
 		
 		/*Se calcula la parte B del camino nuevo*/
-		Path newSegmentB = middleA.dijkstra(middleB, request.getBadnwidth());
-		newSegmentB.unlockUsedLinks();
+		Path newSectionB = pointM1.dijkstra(pointM2, request.getBadnwidth());
+		newSectionB.unlockUsedLinks();
 		originalPath.unlockNodes();
+
+		if(newSectionB == null) return null;
 		
-		/*
-		 * Si no se puede encontrar un camino alternativo sin utilizar
-		 * los canales originales, se ignora la mutacion.
-		 */
-		if(newSegmentB == null) {
-			return null;
-		}
-		
-		mutantPath.concat(newSegmentB);
-		mutantPath.concat(segmentC);
+		mutantPath.concat(newSectionB);
+		mutantPath.concat(sectionC);
 		
 		return mutantPath;
 		
